@@ -247,7 +247,7 @@ const AdminPage: React.FC = () => {
                 <div className="text-sm text-brand-text-secondary">평균 응답 시간</div>
               </div>
               <div className="bg-brand-bg rounded-lg p-4">
-                <div className="text-2xl font-bold text-purple-500">{metrics.apiKeyUsage.size}</div>
+                <div className="text-2xl font-bold text-purple-500">{Object.keys(metrics.apiKeyUsage).length}</div>
                 <div className="text-sm text-brand-text-secondary">활성 API 키</div>
               </div>
             </div>

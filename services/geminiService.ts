@@ -139,55 +139,53 @@ export class GeminiService {
 
   // 다음 사용 가능한 API 키를 가져오는 메서드 (런타임 동적 로딩)
   private getNextAvailableKey(): string | null {
-    return log.monitor(async () => {
-      const API_KEYS = this.getApiKeys(); // 런타임에 동적 로딩
-      
-      if (API_KEYS.length === 0) {
-        log.warn('런타임에 API 키를 찾을 수 없습니다.');
-        return null;
-      }
-      
-      // 실패한 키들을 제외하고 사용 가능한 키 찾기
-      const availableKeys = API_KEYS.filter(key => {
-        const failures = this.apiKeyFailures.get(key) || 0;
-        return failures < 3; // 3번 이상 실패한 키는 제외
-      });
-      
-      if (availableKeys.length === 0) {
-        log.warn('모든 API 키가 실패했습니다. 첫 번째 키로 재시도합니다.');
-        // 모든 키가 실패했으면 실패 카운트를 리셋하고 첫 번째 키 사용
-        this.apiKeyFailures.clear();
-        return API_KEYS[0];
-      }
-      
-      // currentKeyIndex 초기화 체크 (더 안전한 검증)
-      if (isNaN(GeminiService.currentKeyIndex) || GeminiService.currentKeyIndex < 0) {
-        GeminiService.currentKeyIndex = 0;
-      }
-      
-      // 로테이션 방식으로 다음 키 선택 (매번 다른 키 사용)
-      const selectedKey = availableKeys[GeminiService.currentKeyIndex % availableKeys.length];
-      const keyIndex = GeminiService.currentKeyIndex % availableKeys.length;
-      
-      // 다음 호출을 위해 인덱스 증가
-      GeminiService.currentKeyIndex = (GeminiService.currentKeyIndex + 1) % availableKeys.length;
-      
-      log.info(`API 키 선택`, {
-        selectedKey: selectedKey.substring(0, 10) + '...',
-        keyIndex,
-        totalKeys: availableKeys.length,
-        availableKeys: availableKeys.map(k => k.substring(0, 10) + '...')
-      });
-      
-      // API 키 유효성 검증
-      if (!this.isValidApiKey(selectedKey)) {
-        log.warn(`API 키가 유효하지 않습니다`, { key: selectedKey.substring(0, 10) + '...' });
-        this.apiKeyFailures.set(selectedKey, (this.apiKeyFailures.get(selectedKey) || 0) + 1);
-        return this.getNextAvailableKey(); // 다음 키 시도
-      }
-      
-      return selectedKey;
-    }, 'API 키 선택');
+    const API_KEYS = this.getApiKeys(); // 런타임에 동적 로딩
+    
+    if (API_KEYS.length === 0) {
+      log.warn('런타임에 API 키를 찾을 수 없습니다.');
+      return null;
+    }
+    
+    // 실패한 키들을 제외하고 사용 가능한 키 찾기
+    const availableKeys = API_KEYS.filter(key => {
+      const failures = this.apiKeyFailures.get(key) || 0;
+      return failures < 3; // 3번 이상 실패한 키는 제외
+    });
+    
+    if (availableKeys.length === 0) {
+      log.warn('모든 API 키가 실패했습니다. 첫 번째 키로 재시도합니다.');
+      // 모든 키가 실패했으면 실패 카운트를 리셋하고 첫 번째 키 사용
+      this.apiKeyFailures.clear();
+      return API_KEYS[0];
+    }
+    
+    // currentKeyIndex 초기화 체크 (더 안전한 검증)
+    if (isNaN(GeminiService.currentKeyIndex) || GeminiService.currentKeyIndex < 0) {
+      GeminiService.currentKeyIndex = 0;
+    }
+    
+    // 로테이션 방식으로 다음 키 선택 (매번 다른 키 사용)
+    const selectedKey = availableKeys[GeminiService.currentKeyIndex % availableKeys.length];
+    const keyIndex = GeminiService.currentKeyIndex % availableKeys.length;
+    
+    // 다음 호출을 위해 인덱스 증가
+    GeminiService.currentKeyIndex = (GeminiService.currentKeyIndex + 1) % availableKeys.length;
+    
+    log.info(`API 키 선택`, {
+      selectedKey: selectedKey.substring(0, 10) + '...',
+      keyIndex,
+      totalKeys: availableKeys.length,
+      availableKeys: availableKeys.map(k => k.substring(0, 10) + '...')
+    });
+    
+    // API 키 유효성 검증
+    if (!this.isValidApiKey(selectedKey)) {
+      log.warn(`API 키가 유효하지 않습니다`, { key: selectedKey.substring(0, 10) + '...' });
+      this.apiKeyFailures.set(selectedKey, (this.apiKeyFailures.get(selectedKey) || 0) + 1);
+      return this.getNextAvailableKey(); // 다음 키 시도
+    }
+    
+    return selectedKey;
   }
 
   // API 키 유효성 검증

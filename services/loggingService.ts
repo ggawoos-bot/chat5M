@@ -22,8 +22,8 @@ export interface SystemMetrics {
   successfulRequests: number;
   failedRequests: number;
   averageResponseTime: number;
-  apiKeyUsage: Map<string, number>;
-  errorCounts: Map<string, number>;
+  apiKeyUsage: Record<string, number>;
+  errorCounts: Record<string, number>;
   lastResetTime: string;
 }
 
@@ -35,8 +35,8 @@ class LoggingService {
     successfulRequests: 0,
     failedRequests: 0,
     averageResponseTime: 0,
-    apiKeyUsage: new Map(),
-    errorCounts: new Map(),
+    apiKeyUsage: {},
+    errorCounts: {},
     lastResetTime: new Date().toISOString()
   };
 
@@ -121,7 +121,7 @@ class LoggingService {
       this.metrics.failedRequests++;
       if (error) {
         const errorType = error.message || 'Unknown Error';
-        this.metrics.errorCounts.set(errorType, (this.metrics.errorCounts.get(errorType) || 0) + 1);
+        this.metrics.errorCounts[errorType] = (this.metrics.errorCounts[errorType] || 0) + 1;
       }
     }
 
@@ -130,7 +130,7 @@ class LoggingService {
     this.metrics.averageResponseTime = totalTime / this.metrics.totalRequests;
 
     // API 키 사용량 업데이트
-    this.metrics.apiKeyUsage.set(maskedKey, (this.metrics.apiKeyUsage.get(maskedKey) || 0) + 1);
+    this.metrics.apiKeyUsage[maskedKey] = (this.metrics.apiKeyUsage[maskedKey] || 0) + 1;
   }
 
   // 시스템 상태 로그
@@ -171,8 +171,8 @@ class LoggingService {
       successfulRequests: 0,
       failedRequests: 0,
       averageResponseTime: 0,
-      apiKeyUsage: new Map(),
-      errorCounts: new Map(),
+      apiKeyUsage: {},
+      errorCounts: {},
       lastResetTime: new Date().toISOString()
     };
     this.logs = [];
