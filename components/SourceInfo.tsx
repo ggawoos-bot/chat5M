@@ -34,7 +34,7 @@ const SourceInfo: React.FC<SourceInfoProps> = ({ sources }) => {
       {/* 설정 링크 */}
       <div className="mt-3 pt-3 border-t border-brand-secondary">
         <a 
-          href="/chat4/admin.html" 
+          href="/chat5M/admin.html" 
           className="inline-flex items-center gap-2 text-brand-primary hover:text-brand-text-primary transition-colors text-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

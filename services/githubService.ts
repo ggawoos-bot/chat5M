@@ -30,7 +30,7 @@ class GitHubService {
 
   constructor() {
     this.owner = 'ggawoos-bot';
-    this.repo = 'chat4';
+    this.repo = 'chat5M';
     this.baseUrl = `https://api.github.com/repos/${this.owner}/${this.repo}`;
   }
 
