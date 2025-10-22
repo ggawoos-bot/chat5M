@@ -21,8 +21,8 @@ function runScript(scriptPath, scriptName) {
     // 환경변수 전달 (청크 크기와 오버랩 크기)
     const env = {
       ...process.env,
-      CHUNK_SIZE: process.env.CHUNK_SIZE || '1000',
-      OVERLAP_SIZE: process.env.OVERLAP_SIZE || '150'
+      CHUNK_SIZE: process.env.CHUNK_SIZE || '2000',
+      OVERLAP_SIZE: process.env.OVERLAP_SIZE || '200'
     };
     
     console.log(`🔧 환경변수 설정:`);

@@ -60,8 +60,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 환경변수 설정 확인 및 로깅
-const chunkSize = parseInt(process.env.CHUNK_SIZE) || 1000;
-const overlapSize = parseInt(process.env.OVERLAP_SIZE) || 150;
+const chunkSize = parseInt(process.env.CHUNK_SIZE) || 2000;
+const overlapSize = parseInt(process.env.OVERLAP_SIZE) || 200;
 
 console.log('🔧 PDF 처리 설정:');
 console.log(`   청크 크기: ${chunkSize}자`);
@@ -82,8 +82,8 @@ function getMemoryUsage() {
 // 텍스트를 청크로 분할
 function splitTextIntoChunks(text, maxChunkSize = null) {
   // 환경변수에서 청크 크기 가져오기
-  const chunkSize = maxChunkSize || parseInt(process.env.CHUNK_SIZE) || 1000;
-  const overlapSize = parseInt(process.env.OVERLAP_SIZE) || 150;
+  const chunkSize = maxChunkSize || parseInt(process.env.CHUNK_SIZE) || 2000;
+  const overlapSize = parseInt(process.env.OVERLAP_SIZE) || 200;
   const chunks = [];
   const sentences = text.split(/[.!?]\s+/);
   

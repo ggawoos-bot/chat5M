@@ -9,6 +9,7 @@
     "preprocess-sample": "node scripts/minimal-preprocess.js",
     "preprocess-large": "node scripts/generate-large-pdf.js",
     "preprocess-quality": "node scripts/process-all-pdfs-quality.js",
+    "preprocess-chunked": "node scripts/chunked-pdf-preprocess.js",
     "prebuild": "npm run preprocess-quality",
     "build": "vite build",
     "preview": "vite preview",

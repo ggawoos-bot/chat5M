@@ -124,8 +124,8 @@ export class QuestionAnalyzer {
         return {
           intent: analysis.intent || '일반 문의',
           keywords: analysis.keywords || [],
-          category: analysis.category || 'general',
-          complexity: analysis.complexity || 'simple',
+          category: (analysis.category as QuestionAnalysis['category']) || 'general',
+          complexity: (analysis.complexity as QuestionAnalysis['complexity']) || 'simple',
           entities: analysis.entities || [],
           context: analysis.context || ''
         };
@@ -181,17 +181,39 @@ export class QuestionAnalyzer {
   }
 
   /**
-   * 키워드 추출
+   * 키워드 추출 (하이브리드 방식: 하드코딩 + 동적)
    */
   private extractKeywords(question: string): string[] {
-    const keywords = question
+    // 1. 하드코딩된 핵심 키워드 (chat4 방식)
+    const hardcodedKeywords = [
+      '금연', '금연구역', '건강증진', '시행령', '시행규칙', '지정', '관리', '업무', '지침',
+      '서비스', '통합', '사업', '지원', '규정', '법률', '조항', '항목', '절차', '방법',
+      '기준', '요건', '조건', '제한', '신고', '신청', '처리', '심사', '승인', '허가',
+      '등록', '변경', '취소', '정지', '폐지', '해제', '위반', '과태료', '벌금', '처벌',
+      '제재', '조치', '시설', '장소', '구역', '지역', '범위', '대상', '기관', '단체',
+      '조직', '협회', '연합', '연합회', '담당', '책임', '의무', '권한', '기능', '역할',
+      '교육', '홍보', '점검', '통계', '분석', '개선', '지원', '협력', '평가', '운영',
+      '개발', '보안', '업데이트', '장애', '대응', '보고', '제출', '접수', '심의', '검토',
+      // 어린이 관련 키워드 추가
+      '어린이집', '유치원', '학교', '초등학교', '중학교', '고등학교', '대학교',
+      '보육', '교육', '학생', '어린이', '청소년', '아동', '영유아'
+    ];
+
+    // 2. 하드코딩된 키워드에서 매칭되는 것들
+    const matchedHardcoded = hardcodedKeywords.filter(keyword => 
+      question.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    // 3. 동적 키워드 추출 (기존 방식 유지)
+    const dynamicKeywords = question
       .toLowerCase()
       .replace(/[^\w\s가-힣]/g, ' ')
       .split(/\s+/)
       .filter(word => word.length > 1)
       .filter(word => !this.isStopWord(word));
-    
-    return [...new Set(keywords)]; // 중복 제거
+
+    // 4. 하이브리드 결과 반환
+    return [...new Set([...matchedHardcoded, ...dynamicKeywords])];
   }
 
   /**
@@ -251,20 +273,61 @@ export class QuestionAnalyzer {
   }
 
   /**
-   * 개체 추출
+   * 개체 추출 (확장된 패턴)
    */
   private extractEntities(question: string): string[] {
     const entities: string[] = [];
     
-    // 기관명 추출
+    // 확장된 법령명 패턴
+    const lawPatterns = [
+      /국민건강증진법률/gi,
+      /시행령/gi,
+      /시행규칙/gi,
+      /질서위반행위규제법/gi,
+      /영유아보육법/gi,
+      /유아교육법/gi,
+      /초중등교육법/gi,
+      /고등교육법/gi
+    ];
+    
+    // 확장된 기관명 패턴
+    const orgPatterns = [
+      /보건복지부/gi,
+      /시도/gi,
+      /시군구/gi,
+      /지역사회/gi,
+      /보건소/gi,
+      /보건의료원/gi,
+      /보건지소/gi
+    ];
+    
+    // 시설명 패턴 추가
+    const facilityPatterns = [
+      /어린이집/gi,
+      /유치원/gi,
+      /초등학교/gi,
+      /중학교/gi,
+      /고등학교/gi,
+      /대학교/gi,
+      /의료기관/gi,
+      /학교/gi
+    ];
+    
+    // 모든 패턴 적용
+    [...lawPatterns, ...orgPatterns, ...facilityPatterns].forEach(pattern => {
+      const matches = question.match(pattern);
+      if (matches) {
+        entities.push(...matches);
+      }
+    });
+
+    // 기존 방식도 유지 (추가적인 개체 추출)
     const institutions = question.match(/[가-힣]+(청|부|원|소|센터|기관|단체|협회)/g);
     if (institutions) entities.push(...institutions);
     
-    // 법령명 추출
     const laws = question.match(/[가-힣]+(법|령|규칙|지침|가이드라인|매뉴얼)/g);
     if (laws) entities.push(...laws);
     
-    // 숫자 + 단위 추출
     const numbers = question.match(/\d+(m|km|미터|킬로미터|%|퍼센트|원|만원|억원)/g);
     if (numbers) entities.push(...numbers);
     
@@ -285,6 +348,44 @@ export class QuestionAnalyzer {
  */
 export class ContextSelector {
   private static chunks: Chunk[] = [];
+  
+  // 한국어 동의어 사전 (chat4 방식)
+  private static readonly KOREAN_SYNONYMS: Record<string, string[]> = {
+    '금연': ['금연사업', '담배금지', '흡연금지', '금연정책', '금연운동', '금연지원'],
+    '지정': ['선정', '고시', '공시', '발표', '선정', '지정고시'],
+    '관리': ['운영', '관할', '담당', '처리', '관리운영', '관리업무'],
+    '절차': ['방법', '과정', '순서', '단계', '절차방법', '처리절차'],
+    '신청': ['접수', '제출', '등록', '신고', '신청접수', '제출신청'],
+    '심사': ['검토', '심의', '평가', '심사검토', '심의평가'],
+    '승인': ['허가', '인가', '승인허가', '인가승인'],
+    '규정': ['법령', '규칙', '지침', '규정사항', '법규'],
+    '지침': ['가이드', '매뉴얼', '지침서', '운영지침'],
+    '서비스': ['지원', '제공', '서비스지원', '지원서비스'],
+    '건강증진': ['건강향상', '건강증진사업', '건강관리'],
+    '시설': ['장소', '시설물', '건물', '공간'],
+    '위반': ['위반행위', '위반사항', '위반처리'],
+    '과태료': ['벌금', '과금', '처벌', '제재'],
+    '보고': ['제출', '보고서', '보고사항', '보고제출'],
+    '교육': ['훈련', '교육프로그램', '교육과정', '연수'],
+    '홍보': ['선전', '홍보활동', '홍보사업', '홍보물'],
+    '점검': ['검사', '점검사항', '점검업무', '모니터링'],
+    '통계': ['통계자료', '통계분석', '통계수집', '데이터'],
+    '분석': ['검토', '분석자료', '분석결과', '연구'],
+    '개선': ['향상', '개선사항', '개선방안', '개선계획'],
+    '지원': ['도움', '지원사업', '지원활동', '지원정책'],
+    '협력': ['협조', '협력사업', '협력활동', '연계'],
+    '평가': ['검증', '평가사항', '평가결과', '성과평가'],
+    '운영': ['관리', '운영방법', '운영계획', '운영지침'],
+    '개발': ['구축', '개발사업', '개발계획', '시스템개발'],
+    '보안': ['안전', '보안관리', '보안사항', '정보보안'],
+    '업데이트': ['갱신', '수정', '변경', '개선'],
+    '장애': ['문제', '오류', '장애처리', '문제해결'],
+    '대응': ['처리', '대응방안', '대응절차', '대응계획'],
+    // 어린이 관련 동의어 추가
+    '어린이집': ['보육시설', '어린이보육시설', '보육원'],
+    '유치원': ['유아교육기관', '유치원시설'],
+    '학교': ['교육기관', '학원', '교실']
+  };
 
   /**
    * 청크 설정
@@ -302,7 +403,38 @@ export class ContextSelector {
   }
 
   /**
-   * 질문 분석 결과를 바탕으로 관련 컨텍스트 선택
+   * 동의어 확장 검색
+   */
+  private static expandWithSynonyms(keywords: string[]): string[] {
+    const expandedKeywords = [...keywords];
+    
+    keywords.forEach(keyword => {
+      if (this.KOREAN_SYNONYMS[keyword]) {
+        expandedKeywords.push(...this.KOREAN_SYNONYMS[keyword]);
+      }
+    });
+    
+    return [...new Set(expandedKeywords)];
+  }
+
+  /**
+   * 부분 매칭 점수 계산
+   */
+  private static calculatePartialMatches(chunk: Chunk, keywords: string[]): number {
+    let partialScore = 0;
+    
+    keywords.forEach(keyword => {
+      // 키워드의 일부가 포함되어도 점수 부여
+      if (keyword.length > 2 && chunk.content.toLowerCase().includes(keyword.substring(0, 2))) {
+        partialScore += 0.5;
+      }
+    });
+    
+    return partialScore;
+  }
+
+  /**
+   * 질문 분석 결과를 바탕으로 관련 컨텍스트 선택 (개선된 버전)
    */
   static selectRelevantContexts(
     questionAnalysis: QuestionAnalysis,
@@ -313,23 +445,34 @@ export class ContextSelector {
       return [];
     }
 
-    // 키워드 기반 점수 계산
+    // 키워드 기반 점수 계산 (개선된 버전)
     const scoredChunks = allChunks.map(chunk => {
-    let score = 0;
+      let score = 0;
 
-      // 키워드 매칭 점수
+      // 1. 키워드 매칭 점수 (기본)
       const keywordMatches = questionAnalysis.keywords.filter(keyword =>
-      chunk.content.toLowerCase().includes(keyword.toLowerCase())
-    ).length;
+        chunk.content.toLowerCase().includes(keyword.toLowerCase())
+      ).length;
       score += keywordMatches * 2;
-      
-      // 개체 매칭 점수
+
+      // 2. 동의어 확장 검색 점수 (새로 추가)
+      const expandedKeywords = this.expandWithSynonyms(questionAnalysis.keywords);
+      const synonymMatches = expandedKeywords.filter(keyword =>
+        chunk.content.toLowerCase().includes(keyword.toLowerCase())
+      ).length;
+      score += synonymMatches * 1.5; // 동의어는 낮은 가중치
+
+      // 3. 개체 매칭 점수
       const entityMatches = questionAnalysis.entities.filter(entity =>
         chunk.content.includes(entity)
       ).length;
       score += entityMatches * 3;
-      
-      // 카테고리별 가중치
+
+      // 4. 부분 매칭 점수 (새로 추가)
+      const partialMatches = this.calculatePartialMatches(chunk, questionAnalysis.keywords);
+      score += partialMatches;
+
+      // 5. 카테고리별 가중치 (chat4 방식)
       if (questionAnalysis.category === 'definition' && 
           (chunk.content.includes('정의') || chunk.content.includes('의미'))) {
         score += 2;
@@ -345,7 +488,7 @@ export class ContextSelector {
         score += 2;
       }
       
-      // 복잡도에 따른 가중치
+      // 6. 복잡도에 따른 가중치
       if (questionAnalysis.complexity === 'complex') {
         score += 1; // 복잡한 질문은 더 많은 컨텍스트 필요
       }
