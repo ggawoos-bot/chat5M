@@ -7,7 +7,7 @@ import { geminiService } from './services/geminiService';
 import { SourceInfo as SourceInfoType } from './types';
 
 function App() {
-  const [sources, setSources] = useState<SourceInfoType[]>(geminiService.getSources());
+  const [sources, setSources] = useState<SourceInfoType[]>([]);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCompressionStats, setShowCompressionStats] = useState(false);
@@ -36,6 +36,8 @@ function App() {
         setIsInitializing(false);
       } catch (error) {
         console.error('Failed to initialize chat session:', error);
+        // 초기화 실패 시에도 앱을 계속 실행
+        console.warn('초기화에 실패했지만 앱을 계속 실행합니다.');
         setIsInitializing(false);
       }
     };

@@ -106,35 +106,44 @@ export class GeminiService {
   private initializeAI() {
     console.log('GeminiService AI 초기화 중...');
     
-    // 런타임에 API 키 확인
-    const apiKeys = this.getApiKeys();
-    console.log(`사용 가능한 API 키 개수: ${apiKeys.length}`);
-    
-    if (apiKeys.length > 0) {
-      console.log('API 키 로테이션 시스템 활성화');
-      console.log('매 질문마다 다른 API 키를 사용합니다.');
-      // 하이브리드 방식에서는 초기화 시 AI 인스턴스를 생성하지 않음
-      // 매 질문마다 새로운 키로 인스턴스 생성
-    } else {
-      console.warn("API_KEY가 설정되지 않았습니다. 채팅 기능이 제한됩니다.");
-      console.log('환경변수 확인:');
-      console.log('VITE_GEMINI_API_KEY:', import.meta.env.VITE_GEMINI_API_KEY ? '설정됨' : '설정되지 않음');
-      console.log('VITE_GEMINI_API_KEY_1:', import.meta.env.VITE_GEMINI_API_KEY_1 ? '설정됨' : '설정되지 않음');
-      console.log('VITE_GEMINI_API_KEY_2:', import.meta.env.VITE_GEMINI_API_KEY_2 ? '설정됨' : '설정되지 않음');
+    try {
+      // 런타임에 API 키 확인
+      const apiKeys = this.getApiKeys();
+      console.log(`사용 가능한 API 키 개수: ${apiKeys.length}`);
+      
+      if (apiKeys.length > 0) {
+        console.log('API 키 로테이션 시스템 활성화');
+        console.log('매 질문마다 다른 API 키를 사용합니다.');
+        // 하이브리드 방식에서는 초기화 시 AI 인스턴스를 생성하지 않음
+        // 매 질문마다 새로운 키로 인스턴스 생성
+      } else {
+        console.warn("API_KEY가 설정되지 않았습니다. 채팅 기능이 제한됩니다.");
+        console.log('환경변수 확인:');
+        console.log('VITE_GEMINI_API_KEY:', import.meta.env.VITE_GEMINI_API_KEY ? '설정됨' : '설정되지 않음');
+        console.log('VITE_GEMINI_API_KEY_1:', import.meta.env.VITE_GEMINI_API_KEY_1 ? '설정됨' : '설정되지 않음');
+        console.log('VITE_GEMINI_API_KEY_2:', import.meta.env.VITE_GEMINI_API_KEY_2 ? '설정됨' : '설정되지 않음');
+      }
+    } catch (error) {
+      console.error('AI 초기화 중 오류 발생:', error);
     }
   }
 
   // ✅ 런타임에 API 키를 동적으로 가져오는 메서드 (폴백 메커니즘 포함)
   private getApiKeys(): string[] {
-    const keys = [
-      import.meta.env.VITE_GEMINI_API_KEY || '',
-      import.meta.env.VITE_GEMINI_API_KEY_1 || '',
-      import.meta.env.VITE_GEMINI_API_KEY_2 || '',
-    ].filter(key => key && key !== 'YOUR_GEMINI_API_KEY_HERE' && key !== '');
-    
-    console.log('런타임 API 키 로딩:', keys.map(k => k ? k.substring(0, 10) + '...' : 'undefined'));
-    console.log(`총 ${keys.length}개의 유효한 API 키 발견`);
-    return keys;
+    try {
+      const keys = [
+        import.meta.env.VITE_GEMINI_API_KEY || '',
+        import.meta.env.VITE_GEMINI_API_KEY_1 || '',
+        import.meta.env.VITE_GEMINI_API_KEY_2 || '',
+      ].filter(key => key && key !== 'YOUR_GEMINI_API_KEY_HERE' && key !== '');
+      
+      console.log('런타임 API 키 로딩:', keys.map(k => k ? k.substring(0, 10) + '...' : 'undefined'));
+      console.log(`총 ${keys.length}개의 유효한 API 키 발견`);
+      return keys;
+    } catch (error) {
+      console.error('API 키 로딩 중 오류 발생:', error);
+      return [];
+    }
   }
 
   // 다음 사용 가능한 API 키를 가져오는 메서드 (런타임 동적 로딩)
@@ -535,9 +544,9 @@ export class GeminiService {
       
       // 폴백: 기본 소스 사용
       console.log('Falling back to default sources...');
-      this.cachedSourceText = this.sources
-        .map(source => `[${source.title}]\n${source.content}`)
-        .join('\n\n');
+      this.cachedSourceText = this.sources.length > 0 
+        ? this.sources.map(source => `[${source.title}]\n${source.content}`).join('\n\n')
+        : 'PDF 로딩에 실패했습니다. 기본 모드로 실행됩니다.';
       this.isInitialized = true;
       
       // 기본 압축 결과 생성
