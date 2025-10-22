@@ -284,6 +284,23 @@ export class QuestionAnalyzer {
  * 컨텍스트 선택기
  */
 export class ContextSelector {
+  private static chunks: Chunk[] = [];
+
+  /**
+   * 청크 설정
+   */
+  static setChunks(chunks: Chunk[]): void {
+    this.chunks = chunks;
+    console.log(`ContextSelector에 ${chunks.length}개 청크 설정 완료`);
+  }
+
+  /**
+   * 저장된 청크 가져오기
+   */
+  static getChunks(): Chunk[] {
+    return this.chunks;
+  }
+
   /**
    * 질문 분석 결과를 바탕으로 관련 컨텍스트 선택
    */
@@ -354,6 +371,22 @@ export class ContextSelector {
     const union = [...new Set([...questionWords, ...chunkWords])];
     
     return intersection.length / union.length; // Jaccard 유사도
+  }
+
+  /**
+   * 질문을 분석하고 관련 컨텍스트를 선택하는 통합 메서드
+   */
+  static async selectRelevantContext(
+    question: string, 
+    questionAnalysis: QuestionAnalysis
+  ): Promise<Chunk[]> {
+    const allChunks = this.getChunks();
+    if (allChunks.length === 0) {
+      console.warn('ContextSelector에 설정된 청크가 없습니다.');
+      return [];
+    }
+    
+    return this.selectRelevantContexts(questionAnalysis, allChunks);
   }
 }
 
